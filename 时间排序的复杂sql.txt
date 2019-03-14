@@ -1,0 +1,29 @@
+最近在公司遇到一个复杂的根据时间排序算法的sql编写：
+情况是这样的，公司平台创建的赛事，在赛事列表展示的时候要进行这样的排序：
+赛事都有开赛时间：
+列表从上到下，按比赛日期【今日开赛>未开赛>已开赛】排,未开赛时间正序,已开赛时间正序：
+
+解决的思路就是根据 order by 后面使用case   when .. then.. /  when .. then..  end 可以把多个情况进行排列
+（这个思路同样可以解决把某一条或者两天数据排在最前面）
+ 
+
+我解决的sql如下：
+
+SELECT 
+w.match_event_id matchEventId,w.start_time startTime, w.match_address matchAddress, w.create_time createTime,
+FROM 
+
+w_match w  INNER JOIN m_event m_e on m_e.match_event_id = w.match_event_id
+
+WHERE w.is_used = 1 and m_e.event_guntime is not null 
+order by case when DATEDIFF(m_e.event_guntime,now()) <![CDATA[  =  ]]> 0 then 0 
+when DATEDIFF(m_e.event_guntime,now()) <![CDATA[  >  ]]> 0 then 1 
+when DATEDIFF(m_e.event_guntime,now()) <![CDATA[  <  ]]> 0 then 2
+end 
+,m_e.event_guntime asc limit 0,20
+
+说明： w_match和m_event是我在项目中需要用到的两个表：
+order by 后面 使用 case when .. then 数字越小排的越靠前 
+　　　　　　　　　　　when .. then 数字越大排的越靠后
+                               end
+，m_e.m_e.event_guntime 按赛事开赛时间正序来排
